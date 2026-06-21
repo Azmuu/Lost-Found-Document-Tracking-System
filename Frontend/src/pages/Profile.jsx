@@ -1,145 +1,133 @@
-import React from 'react';
-import { ShieldCheck, User, Download, Check, AlertTriangle } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { User, Download } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { updateProfile, getMyActivityLogs } from '../services/userService';
+import { changePassword } from '../services/authService';
+import { formatDateTime } from '../utils/format';
 
 export default function Profile() {
+  const { user } = useAuth();
+  const [form, setForm] = useState({ name: '', email: '', phone: '', location: '', twoFactorEnabled: false });
+  const [logs, setLogs] = useState([]);
+  const [message, setMessage] = useState('');
+  const [passwords, setPasswords] = useState({ currentPassword: '', newPassword: '' });
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      setForm({
+        name: user.name || '',
+        email: user.email || '',
+        phone: user.phone || '',
+        location: user.location || '',
+        twoFactorEnabled: user.twoFactorEnabled || false,
+      });
+    }
+    getMyActivityLogs({ limit: 10 }).then(({ data }) => setLogs(data.data || [])).catch(() => {});
+  }, [user]);
+
+  const handleSave = async () => {
+    const fd = new FormData();
+    fd.append('name', form.name);
+    fd.append('phone', form.phone);
+    fd.append('location', form.location);
+    fd.append('twoFactorEnabled', form.twoFactorEnabled);
+    try {
+      await updateProfile(fd);
+      setMessage('Profile updated successfully.');
+    } catch (err) {
+      setMessage(err.response?.data?.message || 'Update failed.');
+    }
+  };
+
+  const handlePasswordChange = async () => {
+    try {
+      await changePassword(passwords);
+      setMessage('Password changed successfully.');
+      setPasswords({ currentPassword: '', newPassword: '' });
+      setShowPasswordForm(false);
+    } catch (err) {
+      setMessage(err.response?.data?.message || 'Password change failed.');
+    }
+  };
+
   return (
     <div className="space-y-8 max-w-5xl">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Account Settings</h1>
-          <p className="text-xs text-slate-400 mt-0.5">Manage your identity, security protocols, and track your document recovery history within the FoundLink ecosystem.</p>
+          <h1 className="text-2xl font-bold tracking-tight">Account Settings</h1>
+          <p className="text-xs text-slate-400 mt-0.5">Manage your identity and security settings.</p>
         </div>
-        <div className="flex gap-2">
-          <button className="px-4 py-1.5 border border-slate-200 text-slate-600 text-xs font-semibold rounded-lg bg-white hover:bg-slate-50">Discard</button>
-          <button className="px-4 py-1.5 bg-[#005f54] text-white text-xs font-semibold rounded-lg hover:bg-[#004d44]">Save Changes</button>
-        </div>
+        <button onClick={handleSave} className="px-4 py-1.5 bg-[#005f54] text-white text-xs font-semibold rounded-lg hover:bg-[#004d44]">Save Changes</button>
       </div>
+
+      {message && <div className="text-xs p-3 rounded-lg bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-300">{message}</div>}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left Column: Personal Info Form */}
-        <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 p-6 space-y-6">
-          <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-3">
-            👤 Personal Information
-          </h2>
-
-          <div className="flex flex-col sm:flex-row items-center gap-6">
-            <div className="text-center space-y-1.5">
-              <div className="w-20 h-20 bg-slate-100 rounded-xl overflow-hidden border border-slate-200 flex items-center justify-center">
-                {/* Fallback silhouette icon if img isn't available */}
-                <User className="w-8 h-8 text-slate-400" />
-              </div>
-              <button className="text-[10px] text-slate-400 font-bold hover:underline block">Click to<br/>update photo</button>
+        <div className="lg:col-span-2 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6 space-y-4">
+          <h2 className="text-sm font-bold border-b border-slate-100 dark:border-slate-700 pb-3">Personal Information</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-400 mb-1">Full Name</label>
+              <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 dark:bg-slate-700 rounded-lg text-xs" />
             </div>
-
-            <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-400 mb-1">Full Name</label>
-                <input type="text" defaultValue="Alexander Sterling" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs font-medium outline-none bg-slate-50/50" />
-              </div>
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-400 mb-1">Email Address</label>
-                <input type="email" defaultValue="a.sterling@foundlink.org" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs font-medium outline-none bg-slate-50/50" />
-              </div>
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-400 mb-1">Phone Number</label>
-                <input type="text" defaultValue="+1 (555) 234-8901" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs font-medium outline-none bg-slate-50/50" />
-              </div>
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-400 mb-1">Primary Location</label>
-                <input type="text" defaultValue="Washington, D.C." className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs font-medium outline-none bg-slate-50/50" />
-              </div>
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-400 mb-1">Email</label>
+              <input value={form.email} disabled className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700/50 rounded-lg text-xs opacity-60" />
+            </div>
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-400 mb-1">Phone</label>
+              <input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 dark:bg-slate-700 rounded-lg text-xs" />
+            </div>
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-400 mb-1">Location</label>
+              <input value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 dark:bg-slate-700 rounded-lg text-xs" />
             </div>
           </div>
         </div>
 
-        {/* Right Column: Security Toggles */}
         <div className="space-y-4">
-          <div className="bg-white rounded-xl border border-slate-200 p-5 space-y-4">
-            <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-2">
-              🛡️ Security
-            </h2>
-            <div className="flex justify-between items-center text-xs">
-              <div>
-                <h4 className="font-bold text-slate-800">Two-Factor Auth</h4>
-                <p className="text-[10px] text-slate-400">Recommended for security</p>
+          <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 space-y-4">
+            <h2 className="text-sm font-bold border-b border-slate-100 dark:border-slate-700 pb-2">Security</h2>
+            <label className="flex justify-between items-center text-xs">
+              <span className="font-bold">Two-Factor Auth</span>
+              <input type="checkbox" checked={form.twoFactorEnabled} onChange={(e) => setForm({ ...form, twoFactorEnabled: e.target.checked })} />
+            </label>
+            <button onClick={() => setShowPasswordForm(!showPasswordForm)} className="w-full py-2 border border-slate-200 dark:border-slate-600 rounded-lg text-xs font-semibold">Change Password</button>
+            {showPasswordForm && (
+              <div className="space-y-2">
+                <input type="password" placeholder="Current password" value={passwords.currentPassword} onChange={(e) => setPasswords({ ...passwords, currentPassword: e.target.value })} className="w-full px-3 py-2 border rounded-lg text-xs dark:bg-slate-700 dark:border-slate-600" />
+                <input type="password" placeholder="New password" value={passwords.newPassword} onChange={(e) => setPasswords({ ...passwords, newPassword: e.target.value })} className="w-full px-3 py-2 border rounded-lg text-xs dark:bg-slate-700 dark:border-slate-600" />
+                <button onClick={handlePasswordChange} className="w-full py-2 bg-[#005f54] text-white rounded-lg text-xs">Update Password</button>
               </div>
-              {/* Custom Switch toggle */}
-              <div className="w-8 h-4 bg-[#005f54] rounded-full p-0.5 cursor-pointer flex justify-end">
-                <div className="w-3 h-3 bg-white rounded-full"></div>
-              </div>
+            )}
+          </div>
+          {user?.isVerified && (
+            <div className="bg-[#0b1b2d] text-white p-5 rounded-xl">
+              <h3 className="text-xs font-bold uppercase text-teal-400">Verified Entity</h3>
+              <p className="text-[11px] text-slate-400 mt-1">Your account is verified with full recovery access.</p>
             </div>
-
-            <button className="w-full py-2 px-3 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-50 flex justify-between items-center">
-              Change Password <span>→</span>
-            </button>
-            <button className="w-full py-2 px-3 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-50 flex justify-between items-center">
-              Managed Devices <span>📱</span>
-            </button>
-          </div>
-
-          {/* Verification Badge */}
-          <div className="bg-[#0b1b2d] text-white p-5 rounded-xl space-y-1.5 shadow-sm">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-teal-400">Verified Entity</h3>
-            <p className="text-[11px] text-slate-400 leading-relaxed">
-              Your account is currently verified against the National Document Registry. You have full access to recovery tools.
-            </p>
-          </div>
+          )}
         </div>
       </div>
 
-      {/* Bottom Section: Activity History */}
-      <div className="bg-white rounded-xl border border-slate-200 p-6 space-y-4">
-        <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-          <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-            ⏱ Log Activity History
-          </h2>
-          <button className="text-xs font-semibold text-[#005f54] hover:underline flex items-center gap-1">
-            <Download className="w-3.5 h-3.5" /> Export Log
-          </button>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-slate-500">
-            <thead className="text-slate-400 font-bold uppercase tracking-wider border-b border-slate-100 bg-slate-50/50">
-              <tr>
-                <th className="p-3">Action</th>
-                <th className="p-3">Device / IP</th>
-                <th className="p-3">Location</th>
-                <th className="p-3">Timestamp</th>
-                <th className="p-3 text-right">Status</th>
+      <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6">
+        <h2 className="text-sm font-bold mb-4 flex items-center gap-2"><Download className="w-4 h-4" /> Activity History</h2>
+        <table className="w-full text-left text-xs">
+          <thead className="text-slate-400 font-bold uppercase border-b border-slate-100 dark:border-slate-700">
+            <tr><th className="p-3">Action</th><th className="p-3">IP</th><th className="p-3">Timestamp</th><th className="p-3 text-right">Status</th></tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+            {logs.map((log) => (
+              <tr key={log._id}>
+                <td className="p-3 font-semibold">{log.action.replace(/_/g, ' ')}</td>
+                <td className="p-3 font-mono text-[11px]">{log.ipAddress || '—'}</td>
+                <td className="p-3">{formatDateTime(log.createdAt)}</td>
+                <td className="p-3 text-right"><span className="bg-emerald-50 text-emerald-600 text-[9px] px-1.5 py-0.5 rounded font-bold uppercase">{log.status}</span></td>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 text-slate-700">
-              <tr className="hover:bg-slate-50/30">
-                <td className="p-3 font-semibold text-slate-800 flex items-center gap-2">
-                  <span className="text-slate-400">→</span> Account Login
-                </td>
-                <td className="p-3 font-mono text-[11px]">MacBook Pro (192.168.1.4)</td>
-                <td className="p-3">Washington, D.C.</td>
-                <td className="p-3">Oct 24, 2023 • 09:14 AM</td>
-                <td className="p-3 text-right"><span className="bg-emerald-50 text-emerald-600 font-bold text-[9px] px-1.5 py-0.5 rounded">SUCCESS</span></td>
-              </tr>
-              <tr className="hover:bg-slate-50/30">
-                <td className="p-3 font-semibold text-slate-800 flex items-center gap-2">
-                  <span className="text-slate-400">📄</span> Document Recovery Initialized
-                </td>
-                <td className="p-3 font-mono text-[11px]">Chrome Browser</td>
-                <td className="p-3">Virginia, USA</td>
-                <td className="p-3">Oct 23, 2023 • 04:32 PM</td>
-                <td className="p-3 text-right"><span className="bg-teal-50 text-teal-600 font-bold text-[9px] px-1.5 py-0.5 rounded">COMPLETED</span></td>
-              </tr>
-              <tr className="hover:bg-slate-50/30">
-                <td className="p-3 font-semibold text-slate-800 flex items-center gap-2 text-red-600">
-                  <AlertTriangle className="w-3.5 h-3.5 text-red-500" /> Failed Login Attempt
-                </td>
-                <td className="p-3 font-mono text-[11px]">Unknown Device (203.0.113.1)</td>
-                <td className="p-3">Kyiv, Ukraine</td>
-                <td className="p-3">Oct 20, 2023 • 11:02 PM</td>
-                <td className="p-3 text-right"><span className="bg-red-50 text-red-600 font-bold text-[9px] px-1.5 py-0.5 rounded">BLOCKED</span></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );

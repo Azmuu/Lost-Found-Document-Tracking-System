@@ -1,41 +1,44 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { ProtectedRoute } from '../components/ProtectedRoute';
 
-// Layouts - Waxaan dib ugu laabanaynaa galka 'src' ka dibna 'layouts'
 import MainLayout from '../layouts/MainLayout';
 import DashboardLayout from '../layouts/DashboardLayout';
 import AdminLayout from '../layouts/AdminLayout';
 
-// Pages - Waxaan dib ugu laabanaynaa galka 'src' ka dibna 'pages'
-import Home from '../pages/Home'; 
+import Home from '../pages/Home';
 import Search from '../pages/Search';
+import Upload from '../pages/Upload';
 import Login from '../pages/Login';
 import Register from '../pages/Register';
+import ForgotPassword from '../pages/ForgotPassword';
 
-// Dashboard Pages
 import Overview from '../pages/dashboard/Overview';
-import MyDocuments from '../pages/dashboard/MyDocuments'; 
-import Notifications from '../pages/dashboard/Notifications';
-import Profile from '../pages/dashboard/Profile';
+import MyDocuments from '../pages/MyDocuments';
+import Notifications from '../pages/Notifications';
+import Profile from '../pages/Profile';
 
-// Admin Pages
 import AdminDashboard from '../pages/admin/Dashboard';
+import AdminVerification from '../pages/admin/Verification';
+import AdminDocuments from '../pages/admin/Documents';
+import AdminUsers from '../pages/admin/Users';
+import AdminActivityLogs from '../pages/admin/ActivityLogs';
+import AdminClaims from '../pages/admin/Claims';
 
 export default function AppRoutes() {
   return (
     <Routes>
-      {/* A. BOGAGGA DADWEYNAHA */}
       <Route element={<MainLayout />}>
         <Route path="/" element={<Home />} />
         <Route path="/search" element={<Search />} />
+        <Route path="/upload" element={<ProtectedRoute><Upload /></ProtectedRoute>} />
       </Route>
 
-      {/* B. BOGAGGA KOONTOOYINKA */}
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
 
-      {/* C. BOGAGGA ISTICMAALAHA (Dashboard) */}
-      <Route path="/dashboard" element={<DashboardLayout />}>
+      <Route path="/dashboard" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
         <Route index element={<Navigate to="/dashboard/overview" replace />} />
         <Route path="overview" element={<Overview />} />
         <Route path="my-documents" element={<MyDocuments />} />
@@ -43,8 +46,16 @@ export default function AppRoutes() {
         <Route path="profile" element={<Profile />} />
       </Route>
 
-      {/* D. BOGGA MAAMULKA (Admin Panel) */}
-      <Route path="/admin" element={<AdminLayout><AdminDashboard /></AdminLayout>} />
+      <Route path="/admin" element={<ProtectedRoute adminOnly><AdminLayout /></ProtectedRoute>}>
+        <Route index element={<AdminDashboard />} />
+        <Route path="verification" element={<AdminVerification />} />
+        <Route path="documents" element={<AdminDocuments />} />
+        <Route path="users" element={<AdminUsers />} />
+        <Route path="claims" element={<AdminClaims />} />
+        <Route path="activity" element={<AdminActivityLogs />} />
+      </Route>
+
+      <Route path="*" element={<div className="p-8 text-center text-sm">404 — Page Not Found</div>} />
     </Routes>
   );
 }

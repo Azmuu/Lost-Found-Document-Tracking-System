@@ -1,0 +1,13 @@
+{
+  "name": "lost-found-document-tracking-system",
+  "version": "1.0.0",
+  "private": true,
+  "description": "FoundLink - Lost & Found Document Tracking System",
+  "scripts": {
+    "install:all": "npm install --prefix Backend && npm install --prefix Frontend",
+    "seed": "npm run seed --prefix Backend",
+    "dev:backend": "npm run dev --prefix Backend",
+    "dev:frontend": "npm run dev --prefix Frontend",
+    "build": "npm run build --prefix Frontend"
+  }
+}
